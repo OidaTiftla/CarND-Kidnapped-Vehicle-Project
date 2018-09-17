@@ -58,6 +58,29 @@ inline double dist(double x1, double y1, double x2, double y2) {
 	return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
+/*****************************************************************************
+ * normpdf(x,mu,sigma) computes the probability function at values x using the
+ * normal distribution with mean mu and standard deviation std. x, mu and
+ * sigma must be scalar! The parameter std must be positive.
+ * The normal pdf is y=f(x,mu,std)= 1/(std*sqrt(2pi)) e[ -(x−mu)^2 / 2*std^2 ]
+*****************************************************************************/
+inline float normpdf(float x, float mu, float std) {
+	const float ONE_OVER_SQRT_2PI = 1/sqrt(2*M_PI);
+	return (ONE_OVER_SQRT_2PI/std)*exp(-0.5*pow((x-mu)/std,2));
+}
+
+/*****************************************************************************
+ * normpdf(x_1,x_2,mu_1,mu_2,sigma_1,sigma_2) computes the probability function at values x using the
+ * bivariate normal distribution with mean mu and standard deviation std. x, mu and
+ * sigma must be scalar! The parameter std must be positive.
+ * The normal pdf is y=f(x_1,x_2,mu_1,mu_2,sigma_1,sigma_2)= 1/(sigma_1*sigma_2*2pi) e[ -(x_1−mu_1)^2 / (2*sigma_1^2) -(x_2−mu_2)^2 / (2*sigma_2^2) ]
+*****************************************************************************/
+inline float normpdf(float x_1, float x_2, float mu_1, float mu_2, float std_1, float std_2) {
+	const float ONE_OVER_2PI = 1/(2*M_PI);
+	return (ONE_OVER_2PI/std_1/std_2)*exp(-0.5*(pow((x_1-mu_1)/std_1,2) + pow((x_2-mu_2)/std_2,2)));
+}
+
+
 inline double * getError(double gt_x, double gt_y, double gt_theta, double pf_x, double pf_y, double pf_theta) {
 	static double error[3];
 	error[0] = fabs(pf_x - gt_x);
