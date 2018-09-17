@@ -114,6 +114,34 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     //   and the following is a good resource for the actual equation to implement (look at equation
     //   3.33
     //   http://planning.cs.uiuc.edu/node99.html
+
+    for (auto p : this->particles) {
+        std::vector<LandmarkObs> observations_in_map_coordinates;
+        for (const auto obs : observations) {
+            LandmarkObs obs_in_map_coordinates;
+            obs_in_map_coordinates.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
+            obs_in_map_coordinates.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
+            observations_in_map_coordinates.push_back(obs_in_map_coordinates);
+        }
+
+        std::vector<LandmarkObs> predicted;
+        for (const auto lm : map_landmarks.landmark_list) {
+            LandmarkObs pred;
+            pred.id = lm.id_i;
+            pred.x = lm.x_f;
+            pred.y = lm.y_f;
+            predicted.push_back(pred);
+        }
+
+        this->dataAssociation(predicted, observations_in_map_coordinates);
+
+        p.weight = 1;
+        for (const auto obs : observations_in_map_coordinates) {
+            const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](auto &x) { return x.id == obs.id; });
+            auto prob = normpdf(obs.x, obs.y, pred->x, pred->y, std_landmark[0], std_landmark[1]);
+            p.weight *= prob;
+        }
+    }
 }
 
 void ParticleFilter::resample() {
