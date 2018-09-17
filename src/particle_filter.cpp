@@ -137,7 +137,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
         p.weight = 1;
         for (const auto obs : observations_in_map_coordinates) {
-            const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](auto &x) { return x.id == obs.id; });
+            const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](const LandmarkObs &x) { return x.id == obs.id; });
             auto prob = normpdf(obs.x, obs.y, pred->x, pred->y, std_landmark[0], std_landmark[1]);
             p.weight *= prob;
         }
