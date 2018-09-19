@@ -72,7 +72,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	normal_distribution<double> dist_y(0, std_y);
 	normal_distribution<double> dist_theta(0, std_theta);
 
-    for (auto p : this->particles) {
+    for (auto &p : this->particles) {
         // move without error
         p.x += (velocity / yaw_rate) * (sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
         p.y += (velocity / yaw_rate) * (cos(p.theta) - cos(p.theta + yaw_rate * delta_t));
@@ -90,9 +90,9 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
     // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
     //   implement this method and use it as a helper during the updateWeights phase.
 
-    for (auto obs : observations) {
+    for (auto &obs : observations) {
         auto dist_squared_min = std::numeric_limits<const float>::infinity();
-        for (auto pred : predicted) {
+        for (auto &pred : predicted) {
             auto dist_squared = (obs.x - pred.x) * (obs.x - pred.x) + (obs.y - pred.y) * (obs.y - pred.y);
             if (dist_squared < dist_squared_min) {
                 dist_squared_min = dist_squared;
@@ -115,9 +115,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     //   3.33
     //   http://planning.cs.uiuc.edu/node99.html
 
-    for (auto p : this->particles) {
+    for (auto &p : this->particles) {
         std::vector<LandmarkObs> observations_in_map_coordinates;
-        for (const auto obs : observations) {
+        for (auto const &obs : observations) {
             LandmarkObs obs_in_map_coordinates;
             obs_in_map_coordinates.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
             obs_in_map_coordinates.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
@@ -125,7 +125,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         }
 
         std::vector<LandmarkObs> predicted;
-        for (const auto lm : map_landmarks.landmark_list) {
+        for (auto const &lm : map_landmarks.landmark_list) {
             LandmarkObs pred;
             pred.id = lm.id_i;
             pred.x = lm.x_f;
@@ -136,7 +136,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         this->dataAssociation(predicted, observations_in_map_coordinates);
 
         p.weight = 1;
-        for (const auto obs : observations_in_map_coordinates) {
+        for (auto const &obs : observations_in_map_coordinates) {
             const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](const LandmarkObs &x) { return x.id == obs.id; });
             auto prob = normpdf(obs.x, obs.y, pred->x, pred->y, std_landmark[0], std_landmark[1]);
             p.weight *= prob;
