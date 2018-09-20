@@ -125,6 +125,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         std::vector<LandmarkObs> observations_in_map_coordinates;
         for (auto const &obs : observations) {
             LandmarkObs obs_in_map_coordinates;
+            obs_in_map_coordinates.id = -1;
             obs_in_map_coordinates.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
             obs_in_map_coordinates.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
             observations_in_map_coordinates.push_back(obs_in_map_coordinates);
