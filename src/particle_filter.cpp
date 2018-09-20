@@ -98,7 +98,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 
     for (auto &obs : observations) {
         auto dist_squared_min = std::numeric_limits<const float>::infinity();
-        for (auto &pred : predicted) {
+        for (auto const &pred : predicted) {
             auto dist_squared = (obs.x - pred.x) * (obs.x - pred.x) + (obs.y - pred.y) * (obs.y - pred.y);
             if (dist_squared < dist_squared_min) {
                 dist_squared_min = dist_squared;
