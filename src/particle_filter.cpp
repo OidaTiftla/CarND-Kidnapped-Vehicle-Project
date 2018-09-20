@@ -96,14 +96,24 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
     // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
     //   implement this method and use it as a helper during the updateWeights phase.
 
+    if (observations.size() <= 0) {
+        std::cout << "no observations given" << std::endl;
+    }
+    if (predicted.size() <= 0) {
+        std::cout << "no predicted observations given" << std::endl;
+    }
     for (auto &obs : observations) {
         auto dist_squared_min = std::numeric_limits<const float>::infinity();
+        obs.id = -2;
         for (auto const &pred : predicted) {
             auto dist_squared = (obs.x - pred.x) * (obs.x - pred.x) + (obs.y - pred.y) * (obs.y - pred.y);
             if (dist_squared < dist_squared_min) {
                 dist_squared_min = dist_squared;
                 obs.id = pred.id;
             }
+        }
+        if (obs.id == -2) {
+            std::cout << "no nearest prediction found" << std::endl;
         }
     }
 }
@@ -145,6 +155,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         p.weight = 1;
         for (auto const &obs : observations_in_map_coordinates) {
             const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](const LandmarkObs &x) { return x.id == obs.id; });
+            if (pred == predicted.end()) {
+                // nothing found
+                p.weight = 0;
+                std::cout << "error: landmark not found for id=" << obs.id << std::endl;
+                break;
+            }
             auto prob = normpdf(obs.x, obs.y, pred->x, pred->y, std_landmark[0], std_landmark[1]);
             p.weight *= prob;
         }
