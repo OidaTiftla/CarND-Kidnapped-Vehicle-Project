@@ -182,6 +182,7 @@ void ParticleFilter::resample() {
         p.x = this->particles[particle_index].x;
         p.y = this->particles[particle_index].y;
         p.theta = this->particles[particle_index].theta;
+        p.weight = this->particles[particle_index].weight;
         new_particles.push_back(p);
     }
     this->particles = new_particles;
