@@ -81,10 +81,10 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
         p.x += dist_x(gen);
         p.y += dist_y(gen);
         p.theta += dist_theta(gen);
-        while (p.theta > M_PI) {
+        while (p.theta > M_PI * 2) {
             p.theta -= M_PI * 2;
         }
-        while (p.theta < -M_PI) {
+        while (p.theta < 0) {
             p.theta += M_PI * 2;
         }
     }
