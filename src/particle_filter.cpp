@@ -74,9 +74,15 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
     for (auto &p : this->particles) {
         // move without error
-        p.x += (velocity / yaw_rate) * (sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
-        p.y += (velocity / yaw_rate) * (cos(p.theta) - cos(p.theta + yaw_rate * delta_t));
-        p.theta += yaw_rate * delta_t;
+        if (yaw_rate == 0.0) {
+            p.x += velocity * delta_t * cos(p.theta);
+            p.y += velocity * delta_t * sin(p.theta);
+            p.theta += 0.0;
+        } else {
+            p.x += (velocity / yaw_rate) * (sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
+            p.y += (velocity / yaw_rate) * (cos(p.theta) - cos(p.theta + yaw_rate * delta_t));
+            p.theta += yaw_rate * delta_t;
+        }
         // add error
         p.x += dist_x(gen);
         p.y += dist_y(gen);
