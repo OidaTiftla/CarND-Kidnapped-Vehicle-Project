@@ -165,7 +165,7 @@ void ParticleFilter::resample() {
 	// Create uniform distributions for particle index and beta.
     uniform_int_distribution<int> dist_particle_index(0, this->particles.size() - 1);
     auto max_weight = *std::max_element(this->weights.begin(), this->weights.end());
-    uniform_int_distribution<int> dist_beta(0, max_weight * 2);
+    uniform_real_distribution<float> dist_beta(0, max_weight * 2);
 
     // resampling
     std::vector<Particle> new_particles;
