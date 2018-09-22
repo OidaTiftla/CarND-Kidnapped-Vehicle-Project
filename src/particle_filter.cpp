@@ -138,37 +138,36 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     //   3.33
     //   http://planning.cs.uiuc.edu/node99.html
 
+    auto observations_in_car_coordinates = observations; // copy, because later the dataAssociations are stored there
+    for (auto &obs : observations_in_car_coordinates) {
+        obs.id = -1;
+    }
+
     for (auto &p : this->particles) {
-        auto observations_in_map_coordinates = std::vector<LandmarkObs>(observations.size());
+        auto predicted_in_car_coordinates = std::vector<LandmarkObs>(map_landmarks.landmark_list.size());
         int i = 0;
-        for (auto const &obs : observations) {
-            auto &obs_in_map_coordinates = observations_in_map_coordinates[i++];
-            obs_in_map_coordinates.id = -1;
-            obs_in_map_coordinates.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
-            obs_in_map_coordinates.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
-        }
-
-        auto predicted = std::vector<LandmarkObs>(map_landmarks.landmark_list.size());
-        i = 0;
         for (auto const &lm : map_landmarks.landmark_list) {
-            auto &pred = predicted[i++];
-            pred.id = lm.id_i;
-            pred.x = lm.x_f;
-            pred.y = lm.y_f;
+            auto &pred_in_car_coordinates = predicted_in_car_coordinates[i++];
+            pred_in_car_coordinates.id = lm.id_i;
+            pred_in_car_coordinates.x = cos(p.theta) * (lm.x_f - p.x) + sin(p.theta) * (lm.y_f - p.y);
+            pred_in_car_coordinates.y = -sin(p.theta) * (lm.x_f - p.x) + cos(p.theta) * (lm.y_f - p.y);
         }
 
-        this->dataAssociation(predicted, observations_in_map_coordinates);
+        this->dataAssociation(predicted_in_car_coordinates, observations_in_car_coordinates);
 
         p.weight = 1;
-        for (auto const &obs : observations_in_map_coordinates) {
-            const auto pred = std::find_if(predicted.begin(), predicted.end(), [&obs](const LandmarkObs &x) { return x.id == obs.id; });
-            if (pred == predicted.end()) {
+        for (auto const &obs : observations_in_car_coordinates) {
+            const auto pred_in_car_coordinates = std::find_if(
+                predicted_in_car_coordinates.begin(),
+                predicted_in_car_coordinates.end(),
+                [&obs](const LandmarkObs &x) { return x.id == obs.id; });
+            if (pred_in_car_coordinates == predicted_in_car_coordinates.end()) {
                 // nothing found
                 p.weight = 0;
                 std::cout << "error: landmark not found for id=" << obs.id << std::endl;
                 break;
             }
-            auto prob = normpdf(obs.x, obs.y, pred->x, pred->y, std_landmark[0], std_landmark[1]);
+            auto prob = normpdf(obs.x, obs.y, pred_in_car_coordinates->x, pred_in_car_coordinates->y, std_landmark[0], std_landmark[1]);
             p.weight *= prob;
         }
     }
