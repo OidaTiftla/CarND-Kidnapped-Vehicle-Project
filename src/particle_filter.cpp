@@ -40,15 +40,14 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_theta(theta, std_theta);
 
     this->num_particles = 1000;
+    this->particles.resize(this->num_particles);
     for (int i = 0; i < this->num_particles; ++i) {
-        auto p = Particle();
+        auto &p = this->particles[i];
         p.id = i;
         p.x = dist_x(gen);
 		p.y = dist_y(gen);
 		p.theta = dist_theta(gen);
         p.weight = 1;
-
-        this->particles.push_back(p);
     }
     this->weights = vector<double>(this->num_particles, 1.0);
     this->is_initialized = true;
@@ -96,7 +95,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+void ParticleFilter::dataAssociation(const std::vector<LandmarkObs> &predicted, std::vector<LandmarkObs>& observations) {
     // TODO: Find the predicted measurement that is closest to each observed measurement and assign the
     //   observed measurement to this particular landmark.
     // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
@@ -112,7 +111,9 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
         auto dist_squared_min = std::numeric_limits<const float>::infinity();
         obs.id = -2;
         for (auto const &pred : predicted) {
-            auto dist_squared = (obs.x - pred.x) * (obs.x - pred.x) + (obs.y - pred.y) * (obs.y - pred.y);
+            auto dx = obs.x - pred.x;
+            auto dy = obs.y - pred.y;
+            auto dist_squared = dx * dx + dy * dy;
             if (dist_squared < dist_squared_min) {
                 dist_squared_min = dist_squared;
                 obs.id = pred.id;
@@ -138,22 +139,22 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     //   http://planning.cs.uiuc.edu/node99.html
 
     for (auto &p : this->particles) {
-        std::vector<LandmarkObs> observations_in_map_coordinates;
+        auto observations_in_map_coordinates = std::vector<LandmarkObs>(observations.size());
+        int i = 0;
         for (auto const &obs : observations) {
-            LandmarkObs obs_in_map_coordinates;
+            auto &obs_in_map_coordinates = observations_in_map_coordinates[i++];
             obs_in_map_coordinates.id = -1;
             obs_in_map_coordinates.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
             obs_in_map_coordinates.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
-            observations_in_map_coordinates.push_back(obs_in_map_coordinates);
         }
 
-        std::vector<LandmarkObs> predicted;
+        auto predicted = std::vector<LandmarkObs>(map_landmarks.landmark_list.size());
+        i = 0;
         for (auto const &lm : map_landmarks.landmark_list) {
-            LandmarkObs pred;
+            auto &pred = predicted[i++];
             pred.id = lm.id_i;
             pred.x = lm.x_f;
             pred.y = lm.y_f;
-            predicted.push_back(pred);
         }
 
         this->dataAssociation(predicted, observations_in_map_coordinates);
@@ -191,23 +192,22 @@ void ParticleFilter::resample() {
     uniform_real_distribution<float> dist_beta(0, max_weight * 2);
 
     // resampling
-    std::vector<Particle> new_particles;
+    auto new_particles = std::vector<Particle>(this->num_particles);
     auto particle_index = dist_particle_index(gen);
     auto beta = 0.0f;
     for (int i = 0; i < this->num_particles; ++i) {
         beta += dist_beta(gen);
-        while (this->particles[particle_index].weight < beta) {
-            beta -= this->particles[particle_index].weight;
+        while (this->weights[particle_index] < beta) {
+            beta -= this->weights[particle_index];
             ++particle_index;
             particle_index %= this->num_particles;
         }
-        Particle p;
+        auto &p = new_particles[i];
         p.id = i;
         p.x = this->particles[particle_index].x;
         p.y = this->particles[particle_index].y;
         p.theta = this->particles[particle_index].theta;
-        p.weight = this->particles[particle_index].weight;
-        new_particles.push_back(p);
+        p.weight = this->weights[particle_index];
     }
     this->particles = new_particles;
 }
