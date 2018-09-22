@@ -25,8 +25,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     // Add random Gaussian noise to each particle.
     // NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-	default_random_engine gen;
-
 	// Set standard deviations for x, y, and theta.
 	auto std_x = std[0];
 	auto std_y = std[1];
@@ -44,9 +42,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     for (int i = 0; i < this->num_particles; ++i) {
         auto &p = this->particles[i];
         p.id = i;
-        p.x = dist_x(gen);
-		p.y = dist_y(gen);
-		p.theta = dist_theta(gen);
+        p.x = dist_x(this->gen);
+		p.y = dist_y(this->gen);
+		p.theta = dist_theta(this->gen);
         p.weight = 1;
     }
     this->weights = vector<double>(this->num_particles, 1.0);
@@ -58,8 +56,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     // NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
     //  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
     //  http://www.cplusplus.com/reference/random/default_random_engine/
-
-	default_random_engine gen;
 
 	// Set standard deviations for x, y, and theta.
 	auto std_x = std_pos[0];
@@ -73,7 +69,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
     for (auto &p : this->particles) {
         // move without error
-        if (yaw_rate == 0.0) {
+        if (yaw_rate < 0.000001) {
             p.x += velocity * delta_t * cos(p.theta);
             p.y += velocity * delta_t * sin(p.theta);
             p.theta += 0.0;
@@ -83,9 +79,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
             p.theta += yaw_rate * delta_t;
         }
         // add error
-        p.x += dist_x(gen);
-        p.y += dist_y(gen);
-        p.theta += dist_theta(gen);
+        p.x += dist_x(this->gen);
+        p.y += dist_y(this->gen);
+        p.theta += dist_theta(this->gen);
         while (p.theta > M_PI * 2) {
             p.theta -= M_PI * 2;
         }
@@ -191,24 +187,13 @@ void ParticleFilter::resample() {
     // NOTE: You may find std::discrete_distribution helpful here.
     //   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
-	default_random_engine gen;
-
-	// Create uniform distributions for particle index and beta.
-    uniform_int_distribution<int> dist_particle_index(0, this->particles.size() - 1);
-    auto max_weight = *std::max_element(this->weights.begin(), this->weights.end());
-    uniform_real_distribution<float> dist_beta(0, max_weight * 2);
+	// Create discrete distributions for particle index.
+    discrete_distribution<> dist(this->weights.begin(), this->weights.end());
 
     // resampling
     auto new_particles = std::vector<Particle>(this->num_particles);
-    auto particle_index = dist_particle_index(gen);
-    auto beta = 0.0f;
     for (int i = 0; i < this->num_particles; ++i) {
-        beta += dist_beta(gen);
-        while (this->weights[particle_index] < beta) {
-            beta -= this->weights[particle_index];
-            ++particle_index;
-            particle_index %= this->num_particles;
-        }
+        auto particle_index = dist(this->gen);
         auto &p = new_particles[i];
         p.id = i;
         p.x = this->particles[particle_index].x;
