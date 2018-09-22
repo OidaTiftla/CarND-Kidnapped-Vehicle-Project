@@ -143,14 +143,22 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         obs.id = -1;
     }
 
+    auto predicted_in_car_coordinates = std::vector<LandmarkObs>();
+    predicted_in_car_coordinates.reserve(map_landmarks.landmark_list.size());
+    auto sensor_range_squared = sensor_range * sensor_range;
     for (auto &p : this->particles) {
-        auto predicted_in_car_coordinates = std::vector<LandmarkObs>(map_landmarks.landmark_list.size());
-        int i = 0;
+        predicted_in_car_coordinates.clear();
         for (auto const &lm : map_landmarks.landmark_list) {
-            auto &pred_in_car_coordinates = predicted_in_car_coordinates[i++];
-            pred_in_car_coordinates.id = lm.id_i;
-            pred_in_car_coordinates.x = cos(p.theta) * (lm.x_f - p.x) + sin(p.theta) * (lm.y_f - p.y);
-            pred_in_car_coordinates.y = -sin(p.theta) * (lm.x_f - p.x) + cos(p.theta) * (lm.y_f - p.y);
+            auto dx = lm.x_f - p.x;
+            auto dy = lm.y_f - p.y;
+            auto distance_squared = dx * dx + dy * dy;
+            if (distance_squared <= sensor_range_squared) {
+                LandmarkObs pred_in_car_coordinates;
+                pred_in_car_coordinates.id = lm.id_i;
+                pred_in_car_coordinates.x = cos(p.theta) * (lm.x_f - p.x) + sin(p.theta) * (lm.y_f - p.y);
+                pred_in_car_coordinates.y = -sin(p.theta) * (lm.x_f - p.x) + cos(p.theta) * (lm.y_f - p.y);
+                predicted_in_car_coordinates.push_back(pred_in_car_coordinates);
+            }
         }
 
         this->dataAssociation(predicted_in_car_coordinates, observations_in_car_coordinates);
